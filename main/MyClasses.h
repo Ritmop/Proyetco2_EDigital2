@@ -21,10 +21,10 @@ class Player {
     unsigned int y_pos_heli;
     unsigned int width_heli;
     unsigned int height_heli;
-    unsigned int x_pos_bullet;
-    unsigned int y_pos_bullet;
-    unsigned int width_bullet;
-    unsigned int height_bullet;
+    unsigned int x_pos_bullet = 320;
+    unsigned int y_pos_bullet = 240;
+    unsigned int width_bullet = 0;
+    unsigned int height_bullet = 0;
 
   private:
     unsigned char* _sprite_heli;
@@ -34,6 +34,9 @@ class Player {
     unsigned int _t0_shoot;
     unsigned int _x0_shoot;
     unsigned int _shooting = 0;
+    unsigned int _x_exp;
+    unsigned int _y_exp;
+    unsigned int _t_explotion = 500;
 };
 
 #endif
