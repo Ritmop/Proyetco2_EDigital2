@@ -6,7 +6,7 @@ class Player {
     Player(unsigned int w, unsigned int h, unsigned char* bitmap);
 
     void set_to(unsigned int x, unsigned int y);
-    void update_display();
+    void update_display(unsigned int counter);
     void move_left();
     void move_right();
     //void move_up();
@@ -14,7 +14,7 @@ class Player {
     int check_bounds();
     void free_fall(unsigned int t);
     void leap(unsigned int t);
-    void shoot(unsigned int t, unsigned int w, unsigned int h, unsigned char* bitmap);
+    void shoot(unsigned int t, unsigned int w, unsigned int h, unsigned char* bitmapB, unsigned char* bitmapE);
     void move_proj(unsigned int t);
 
     unsigned int x_pos_heli;
@@ -27,8 +27,9 @@ class Player {
     unsigned int height_bullet;
 
   private:
-    unsigned char* _bitmap_heli;
+    unsigned char* _sprite_heli;
     unsigned char* _bitmap_bullet;
+    unsigned char* _bitmap_bullet_explotion;
     unsigned int _t0_leap;
     unsigned int _t0_shoot;
     unsigned int _x0_shoot;

@@ -10,7 +10,7 @@ const int backGroundColor = 0x0000;
 
 const float a = 0.05;
 const float vel_leap = 0.7;
-const float vel_bullet = 10;
+const float vel_bullet = 5;
 
 /*********************************************************************************************************
   PLAYER
@@ -18,12 +18,15 @@ const float vel_bullet = 10;
 Player::Player(unsigned int w, unsigned int h, unsigned char* bitmap) {
   width_heli = w;
   height_heli = h;
-  _bitmap_heli = bitmap;
+  _sprite_heli = bitmap;
 }
 
-void Player::update_display() {
-  LCD_Bitmap(x_pos_heli, y_pos_heli, width_heli, height_heli, _bitmap_heli);
-  LCD_Bitmap(x_pos_bullet, y_pos_bullet, width_bullet, height_bullet, _bitmap_bullet);
+void Player::update_display(unsigned int counter) {
+  unsigned int animation = (counter/15 % 3);
+  //LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset);
+  LCD_Sprite(x_pos_heli, y_pos_heli, width_heli, height_heli, _sprite_heli, 3, animation, 0, 0);
+  //LCD_Bitmap(x_pos_heli, y_pos_heli, width_heli, height_heli, _bitmap_heli);
+  LCD_Bitmap(x_pos_bullet, y_pos_bullet, width_bullet, height_bullet, _bitmap_bullet);  
 }
 
 void Player::set_to(unsigned int x, unsigned int y) {
@@ -127,15 +130,16 @@ void Player::leap(unsigned int t) {
   _t0_leap = t;
 }
 
-void Player::shoot(unsigned int t, unsigned int w, unsigned int h, unsigned char* bitmap) {
+void Player::shoot(unsigned int t, unsigned int w, unsigned int h, unsigned char* bitmapB,unsigned char* bitmapE) {
   if (_shooting == 0) { //Shooting spam control
     _shooting = 1;
     _t0_shoot = t;
     width_bullet = w;
     height_bullet = h;
-    _bitmap_bullet = bitmap;
-    x_pos_bullet = x_pos_heli + 30;
-    y_pos_bullet = y_pos_heli + 20;
+    _bitmap_bullet = bitmapB;
+    _bitmap_bullet_explotion = bitmapE;
+    x_pos_bullet = x_pos_heli + 16;
+    y_pos_bullet = y_pos_heli + 8;
     _x0_shoot = x_pos_bullet;
   }
   else {//Explodes* bullet
@@ -151,7 +155,9 @@ void Player::move_proj(unsigned int t) {
     FillRect(x_prev, y_pos_bullet, x_pos_bullet - x_prev, height_bullet, backGroundColor); //Borrar pixeles de la trayectoria
   }
   else {
-    FillRect(x_pos_bullet, y_pos_bullet, width_bullet - 1, height_bullet, 0xff00); //Borrar pixeles después de la distancia máxima o al explotar
+    //Crear axplosión después de la distancia máxima o al disparar de nuevo    
+    //FillRect(x_pos_bullet, y_pos_bullet, width_bullet - 1, height_bullet, 0xff00);
+    LCD_Bitmap(x_pos_bullet, y_pos_bullet-10, 25, 30, _bitmap_bullet_explotion);
     width_bullet = 0;
     height_bullet = 0;
     _shooting = 0;

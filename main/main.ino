@@ -15,8 +15,8 @@
 #include "bitmaps.h"
 
 //Classes
-Player helicopter1(64, 32, prueba);
-Player helicopter2(64, 32, prueba);
+Player helicopter1(32, 16, helicopter);
+Player helicopter2(32, 16, helicopter);
 
 typedef enum GameStateType
 {
@@ -28,7 +28,7 @@ typedef enum GameStateType
 GameStateType gameStatus = menu;
 
 int tiempo = 0;
-
+int animation_counter = 0;
 
 void setup() {
   //Hardware setup
@@ -74,7 +74,7 @@ void draw_menu() {
 }
 
 void draw_backgroud() {
-  LCD_Clear(0x0000);
+  LCD_Clear(0x00ff);
   for (int x = 0; x < 319;) {
     LCD_Bitmap(x, 0, 16, 16, tile2);
     LCD_Bitmap(x, 16, 16, 16, tile);
@@ -84,9 +84,9 @@ void draw_backgroud() {
   }
 }
 
-void execute_game() {  
-  helicopter1.set_to(15, 100);
-  helicopter2.set_to(15, 120);
+void execute_game() {
+  helicopter1.set_to(20, 40);
+  helicopter2.set_to(84, 40);
   delay(1000);
 
   while (true) {
@@ -96,16 +96,18 @@ void execute_game() {
       //helicopter1.move_right();
     }
     if (!digitalRead(PUSH2)) {
+      //delay(200);
       while (!digitalRead(PUSH2));
-      helicopter1.shoot(tiempo, 16, 16, enemy);
-      helicopter2.shoot(tiempo, 16, 16, enemy);
+      helicopter1.shoot(tiempo, 16, 4, bullet, explotion);
+      helicopter2.shoot(tiempo, 16, 4, bullet, explotion);
     }
     helicopter1.free_fall(tiempo);
     helicopter1.move_proj(tiempo);
-    helicopter1.update_display();
+    helicopter1.update_display(animation_counter);
     helicopter2.free_fall(tiempo);
     helicopter2.move_proj(tiempo);
-    helicopter2.update_display();
+    helicopter2.update_display(animation_counter);
     tiempo += 2;
+    animation_counter++;
   }
 }
