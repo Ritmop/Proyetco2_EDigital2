@@ -17,13 +17,17 @@
 //Classes
 Player helicopter1(32, 16, helicopter);
 Player helicopter2(32, 16, helicopter);
+Menu_pointer m_pointer(16, 16, pointer);
 
 //Game Status
 typedef enum GameStateType
 {
   MENU = 0,
   PLAYING = 1,
-  GAME_OVER = 2
+  SCORES = 2,
+  HELP = 3,
+  CREDITS = 4,
+  GAME_OVER = 5
 } GameStateType;
 GameStateType gameStatus = MENU;
 
@@ -40,10 +44,14 @@ GameStateType gameStatus = MENU;
 //Game vars
 int tiempo = 0;
 int animation_counter = 0;
-int scoreP1 = 1000;
-int scoreP2 = 1000;
-int prev_scoreP1 = 0;
-int prev_scoreP2 = 0;
+int scoreP1 = 0;
+int scoreP2 = 0;
+int prev_scoreP1 = 1; //Diferente a 0 para mostrar el punteo desde el inicio
+int prev_scoreP2 = 1;
+
+//Other vars
+int backgroundColor = 0x0000;
+int fontColor = 0xFFFF;
 
 void setup() {
   //Hardware setup
@@ -69,13 +77,7 @@ void setup() {
 void loop() {
   if (gameStatus == MENU) {
     draw_menu();
-    while (true) {
-      if (!digitalRead(P1Up)) {
-        Serial.print(gameStatus);
-        gameStatus = PLAYING;
-        break;
-      }
-    }
+    menu_loop();
   }
   else if (gameStatus == PLAYING) {
     draw_backgroud();
@@ -88,11 +90,76 @@ void loop() {
 
 
 void draw_menu() {
-  LCD_Clear(0x2800);
-  LCD_Print("HELICOPTERS", 80, 20, 2, 0xFC08, 0x2800);
-  LCD_Print("OPTION 1", 80, 110, 2, 0x0000, 0x2800);
-  LCD_Print("OPTION 2", 80, 130, 2, 0x0000, 0x2800);
-  LCD_Print("OPTION 3", 80, 150, 2, 0x0000, 0x2800);
+  LCD_Clear(0x0000);
+  LCD_Print("HELICOPTERS", 80, 20, 2, 0xFC00, 0x0000);
+  LCD_Print("PLAY", 128, 100, 2, 0xffff, 0x0000);
+  LCD_Print("SCORES", 120, 120, 2, 0xffff, 0x0000);
+  LCD_Print("HELP", 128, 140, 2, 0xffff, 0x0000);
+  LCD_Print("CREDITS", 104, 160, 2, 0xffff, 0x0000);
+  m_pointer.set_to(64, 100, 0x0000);
+  m_pointer.set_to(64, 100, 0x0000);//Repeat to set previous coordinates
+
+}
+
+void menu_loop() {
+  int selectColor = 0xFC00;
+
+  while (digitalRead(P1Up)) {
+    //Cycle through options
+    if (!digitalRead(P1Left)) {
+      delay(500);
+      m_pointer.y_pos -= 20;
+      if (m_pointer.y_pos < 100) m_pointer.y_pos = 160;
+      m_pointer.set_to(64, m_pointer.y_pos, backgroundColor);
+    }
+    else if (!digitalRead(P1Right)) {
+      delay(500);
+      m_pointer.y_pos += 20;
+      if (m_pointer.y_pos > 160) m_pointer.y_pos = 100;
+      m_pointer.set_to(64, m_pointer.y_pos, backgroundColor);
+    }
+  }
+  //Next page
+  switch (m_pointer.y_pos) {
+    case 100:
+      LCD_Print("PLAY", 128, 100, 2, selectColor, backgroundColor);
+      delay(200);
+      LCD_Print("PLAY", 128, 100, 2, fontColor, backgroundColor);
+      delay(200);
+      LCD_Print("PLAY", 128, 100, 2, selectColor, backgroundColor);
+      gameStatus = PLAYING;
+      break;
+    case 120:
+      LCD_Print("SCORES", 120, 120, 2, selectColor, backgroundColor);
+      delay(200);
+      LCD_Print("SCORES", 120, 120, 2, fontColor, backgroundColor);
+      delay(200);
+      LCD_Print("SCORES", 120, 120, 2, selectColor, backgroundColor);
+      delay(200);
+      gameStatus = MENU;
+      break;
+    case 140:
+      LCD_Print("HELP", 128, 140, 2, selectColor, backgroundColor);
+      delay(200);
+      LCD_Print("HELP", 128, 140, 2, fontColor, backgroundColor);
+      delay(200);
+      LCD_Print("HELP", 128, 140, 2, selectColor, backgroundColor);
+      gameStatus = MENU;
+      //gameStatus = HELP;
+      break;
+    case 160:
+      LCD_Print("CREDITS", 104, 160, 2, selectColor, backgroundColor);
+      delay(200);
+      LCD_Print("CREDITS", 104, 160, 2, fontColor, backgroundColor);
+      delay(200);
+      LCD_Print("CREDITS", 104, 160, 2, selectColor, backgroundColor);
+      //gameStatus = CREDITS;
+      gameStatus = MENU;
+      break;
+    default:
+      gameStatus = MENU;
+      break;
+  }
 }
 
 void draw_backgroud() {
@@ -102,9 +169,8 @@ void draw_backgroud() {
     LCD_Bitmap(x, 16, 16, 16, tile);
     LCD_Bitmap(x, 207, 16, 16, tile);
     LCD_Bitmap(x, 223, 16, 16, tile2);
-    x += 15;
+    x += 16;
   }
-
   LCD_Print("P1:", 0, 0, 2, 0x0000, 0xdd55);
   LCD_Print("P2:", 208, 0, 2, 0x0000, 0xdd55);
 }
@@ -141,17 +207,29 @@ void execute_game() {
       delay(500);
       helicopter2.shoot(tiempo, 16, 4, bullet, explotion);
     }
-
-    helicopter1.free_fall(tiempo);
-    helicopter1.move_proj(tiempo);
-    helicopter1.update_display(animation_counter);
-    helicopter2.free_fall(tiempo);
-    helicopter2.move_proj(tiempo);
-    helicopter2.update_display(animation_counter);
+    update_game();
+    update_scores();
     tiempo += 2;
     animation_counter++;
+  }
+}
 
-    update_scores();
+void update_game() {
+  helicopter1.free_fall(tiempo);
+  helicopter1.move_proj(tiempo);
+  helicopter1.update_display(animation_counter);
+  helicopter2.free_fall(tiempo);
+  helicopter2.move_proj(tiempo);
+  helicopter2.update_display(animation_counter);
+  
+  if (are_colliding(helicopter2.hitbox_bullet, helicopter1.hitbox_heli)) {
+    helicopter2.shoot(tiempo, 16, 4, bullet, explotion);//Forzar explosion del proyectil
+    delay(100);
+    scoreP2 += 50;
+  }
+  if (are_colliding(helicopter2.hitbox_heli, helicopter1.hitbox_bullet)) {
+    helicopter1.shoot(tiempo, 16, 4, bullet, explotion);//Forzar explosion del proyectil
+    scoreP1 += 50;
   }
 }
 
@@ -164,4 +242,9 @@ void update_scores() {
     LCD_Print(String(scoreP2), 256, 0, 1, 0x0000, 0xdd55);
     prev_scoreP2 = scoreP2;
   }
+}
+
+int are_colliding(hitbox h1, hitbox h2) {
+  return ((h1.x + h1.w > h2.x) && (h1.x < h2.x + h2.w) &&
+          (h1.y + h1.h > h2.y) && (h1.y < h2.y + h2.h));
 }
