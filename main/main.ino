@@ -15,8 +15,9 @@
 #include "bitmaps.h"
 
 //Classes
-Player helicopter1(32, 16, helicopter);
-Player helicopter2(32, 16, helicopter);
+Player helicopter1(32, 16, helicopter_g);
+Player helicopter2(32, 16, helicopter_r);
+
 Menu_pointer m_pointer(16, 16, pointer);
 
 //Game Status
@@ -93,7 +94,7 @@ void draw_menu() {
   LCD_Clear(0x0000);
   LCD_Print("HELICOPTERS", 80, 20, 2, 0xFC00, 0x0000);
   LCD_Print("PLAY", 128, 100, 2, 0xffff, 0x0000);
-  LCD_Print("SCORES", 120, 120, 2, 0xffff, 0x0000);
+  LCD_Print("SCORES", 112, 120, 2, 0xffff, 0x0000);
   LCD_Print("HELP", 128, 140, 2, 0xffff, 0x0000);
   LCD_Print("CREDITS", 104, 160, 2, 0xffff, 0x0000);
   m_pointer.set_to(64, 100, 0x0000);
@@ -130,11 +131,11 @@ void menu_loop() {
       gameStatus = PLAYING;
       break;
     case 120:
-      LCD_Print("SCORES", 120, 120, 2, selectColor, backgroundColor);
+      LCD_Print("SCORES", 112, 120, 2, selectColor, backgroundColor);
       delay(200);
-      LCD_Print("SCORES", 120, 120, 2, fontColor, backgroundColor);
+      LCD_Print("SCORES", 112, 120, 2, fontColor, backgroundColor);
       delay(200);
-      LCD_Print("SCORES", 120, 120, 2, selectColor, backgroundColor);
+      LCD_Print("SCORES", 112, 120, 2, selectColor, backgroundColor);
       delay(200);
       gameStatus = MENU;
       break;
@@ -176,6 +177,8 @@ void draw_backgroud() {
 }
 
 void execute_game() {
+  helicopter1.define_bullet(16, 4, bullet, 26, 28, explotion);
+  helicopter2.define_bullet(16, 4, bullet, 26, 28, explotion);
   helicopter1.set_to(20, 40);
   helicopter2.set_to(84, 40);
   delay(1000);
@@ -200,13 +203,13 @@ void execute_game() {
       helicopter2.leap(tiempo);
     }
     if (!digitalRead(P1Shoot)) {
-      delay(500);
-      helicopter1.shoot(tiempo, 16, 4, bullet, explotion);
+      delay(250);
+      helicopter1.shoot(tiempo);
     }
     if (!digitalRead(P2Shoot)) {
-      delay(500);
-      helicopter2.shoot(tiempo, 16, 4, bullet, explotion);
-    }
+      delay(250);
+      helicopter2.shoot(tiempo);
+    }    
     update_game();
     update_scores();
     tiempo += 2;
@@ -215,21 +218,28 @@ void execute_game() {
 }
 
 void update_game() {
-  helicopter1.free_fall(tiempo);
-  helicopter1.move_proj(tiempo);
-  helicopter1.update_display(animation_counter);
-  helicopter2.free_fall(tiempo);
-  helicopter2.move_proj(tiempo);
-  helicopter2.update_display(animation_counter);
-  
+  helicopter1.update_display(tiempo, animation_counter);
+  helicopter2.update_display(tiempo, animation_counter);
+
   if (are_colliding(helicopter2.hitbox_bullet, helicopter1.hitbox_heli)) {
-    helicopter2.shoot(tiempo, 16, 4, bullet, explotion);//Forzar explosion del proyectil
-    delay(100);
+    helicopter2.bullet_state = EXPLOTION;//Forzar explosion del proyectil
+    helicopter1.t0_immunity = tiempo;
     scoreP2 += 50;
   }
   if (are_colliding(helicopter2.hitbox_heli, helicopter1.hitbox_bullet)) {
-    helicopter1.shoot(tiempo, 16, 4, bullet, explotion);//Forzar explosion del proyectil
+    helicopter1.bullet_state = EXPLOTION;//Forzar explosion del proyectil
+    helicopter2.t0_immunity = tiempo;
     scoreP1 += 50;
+  }
+  if (are_colliding(helicopter1.hitbox_heli, helicopter1.hitbox_bullet)) {
+    helicopter1.bullet_state = EXPLOTION;//Forzar explosion del proyectil
+    helicopter1.t0_immunity = tiempo;
+    scoreP1 -= 100;
+  }
+  if (are_colliding(helicopter2.hitbox_heli, helicopter2.hitbox_bullet)) {
+    helicopter2.bullet_state = EXPLOTION;//Forzar explosion del proyectil
+    helicopter2.t0_immunity = tiempo;
+    scoreP1 -= 100;
   }
 }
 
