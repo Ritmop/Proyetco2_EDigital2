@@ -21,13 +21,12 @@ extern unsigned char title_screen_bg[];
 extern unsigned char helicopter_g_title_screen[];
 extern unsigned char helicopter_r_title_screen[];
 
-//Classes
-File root;
-File txtFile;
+//Objects
 Player helicopter1(32, 16, helicopter_g, helicopter_g_hit);
 Player helicopter2(32, 16, helicopter_r, helicopter_r_hit);
-
 Menu_pointer m_pointer(20, 16, pointer);
+File root;
+File txtFile;
 
 //Game Status
 typedef enum GameStateType
@@ -60,10 +59,10 @@ int prev_scoreP1 = 1; //Diferente a 0 para mostrar el punteo desde el inicio
 int prev_scoreP2 = 1;
 
 //Other vars
-int game_bgColor = 0x0000;
-int menu_bgColor = 0x3DDF;
-int fontColor1 = 0xFC00;
-int fontColor2 = 0xFFFF;
+const int game_bgColor = 0x0000;
+const int menu_bgColor = 0x3DDF;
+const int fontColor1 = 0xFC00;
+const int fontColor2 = 0xFFFF;
 
 void setup() {
   //Hardware setup
@@ -77,19 +76,27 @@ void setup() {
   pinMode(P2Up, INPUT_PULLUP);
   pinMode(P2Shoot, INPUT_PULLUP);
 
+  pinMode(LCD_CS, OUTPUT);
+  pinMode(SD_CS, OUTPUT);
+
   //LCD Setup
   SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
   Serial.begin(115200);
+
   SPI.setModule(3); //SPI for LCD
-   Serial.println("Inicio");
+  digitalWrite(LCD_CS, LOW);    //Select LCD
+  digitalWrite(SD_CS, HIGH);
+  Serial.println("SPI init");
+  SD_init();
+  delay(10);
   LCD_Init();
   delay(10);
+  Serial.println("SD & LDC init");
 }
 
 
 void loop() {
   if (gameStatus == MENU) {
-     Serial.println("In menu");
     draw_menu();
     menu_loop();
   }
@@ -99,13 +106,14 @@ void loop() {
       execute_game();
     }
   }
-  else if (gameStatus == HELP){
-    //read_SD();
+  else if (gameStatus == HELP) {
+    getFiles();
+    gameStatus = MENU;
   }
 }
 
 void draw_menu() {
-  //LCD_Bitmap(0, 0, 320, 240, title_screen_bg);
+  LCD_Bitmap(0, 0, 320, 240, title_screen_bg);
   LCD_Print("PLAY", 128, 110, 2, fontColor2, menu_bgColor);
   LCD_Print("HELP", 128, 130, 2, fontColor2, menu_bgColor);
   LCD_Print("CREDITS", 104, 150, 2, fontColor2, menu_bgColor);
@@ -115,15 +123,15 @@ void draw_menu() {
 }
 
 void menu_loop() {
-  while (digitalRead(P1Up)) {
+  while (digitalRead(P1Up) && digitalRead(P2Up)) {
     //Cycle through options
-    if (!digitalRead(P1Left)) {
+    if (!digitalRead(P1Left) || !digitalRead(P2Left)) {
       delay(500);
       m_pointer.y_pos -= 20;
       if (m_pointer.y_pos < 110) m_pointer.y_pos = 150;
       m_pointer.set_to(80, m_pointer.y_pos, menu_bgColor);
     }
-    else if (!digitalRead(P1Right)) {
+    else if (!digitalRead(P1Right) || !digitalRead(P2Right)) {
       delay(500);
       m_pointer.y_pos += 20;
       if (m_pointer.y_pos > 150) m_pointer.y_pos = 110;
@@ -271,36 +279,41 @@ int are_colliding(hitbox h1, hitbox h2) {
           (h1.y + h1.h > h2.y) && (h1.y < h2.y + h2.h));
 }
 
-/*void read_SD() {
-  SPI.setModule(0);
 
+String directory[3];
+
+void SD_init() {
   Serial.print("Initializing SD card...");
-  pinMode(10, OUTPUT);
 
-  if (!SD.begin(12)) {
+  if (!SD.begin(SD_CS)) {
     Serial.println("initialization failed!");
     return;
   }
   Serial.println("initialization done.\n");
-
-  root = SD.open("ASCII_~1/");
-
-  getFiles(root);
-  Serial.println("done!");  
+  digitalWrite(SD_CS, HIGH);//Deselect SD
 }
 
-String directory[3];
-void getFiles(File root) {
+void getFiles() {
+  root = SD.open("COPTER~1/");
   int i = 0;
-   while(true) {
-     
-     File entry = root.openNextFile();
-     if (!entry) {
-       // no more files
-       break;
-     }
-     directory[i] = entry.name();
-     entry.close();
-     i++;
-   }
-}*/
+  while (true) {
+
+    File entry = root.openNextFile();
+    if (!entry) {
+      // no more files
+      break;
+    }
+    directory[i] = entry.name();
+    entry.close();
+    i++;
+  }
+  root.close();
+
+  Serial.println("\nFiles: ");
+  Serial.print("1. ");
+  Serial.println(directory[0]);
+  Serial.print("2. ");
+  Serial.println(directory[1]);
+  Serial.print("3. ");
+  Serial.println(directory[2]);
+}
