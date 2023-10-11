@@ -1,5 +1,5 @@
-#ifndef _MY_CLASSES_H_
-#define _MY_CLASSES_H_
+#ifndef _GAME_CLASSES_H_
+#define _GAME_CLASSES_H_
 
 struct hitbox {
   unsigned int x;
@@ -18,7 +18,7 @@ typedef enum bulletState
 
 class Player {
   public:
-    Player(unsigned int w, unsigned int h, unsigned char* bitmap);
+    Player(unsigned int w, unsigned int h, unsigned char* sprite, unsigned char* sprite_hit);
 
     //Helicopter functions
     void set_to(unsigned int x, unsigned int y);
@@ -51,6 +51,7 @@ class Player {
 
     unsigned int _t0_leap;
     unsigned char* _sprite_heli;
+    unsigned char* _sprite_heli_hit;
 
     //Bullet vars
     unsigned int _x_prev_bullet;
@@ -72,15 +73,16 @@ class Player {
 
 class Menu_pointer {
   public:
-    Menu_pointer(unsigned int w, unsigned int h, unsigned char* bitmap);
+    Menu_pointer(unsigned int w, unsigned int h, unsigned char* sprite);
 
     void set_to(unsigned int x, unsigned int y, unsigned int color);
+    void update_display(unsigned int counter);
 
     unsigned int _x_pos;
     unsigned int y_pos;
 
   private:
-    unsigned char* _bitmap;
+    unsigned char* _sprite;
     unsigned int _width;
     unsigned int _height;
     unsigned int _x_prev;

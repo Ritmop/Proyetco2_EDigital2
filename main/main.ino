@@ -1,4 +1,5 @@
 #include <TM4C123GH6PM.h>
+#include <SD.h>
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
@@ -10,15 +11,23 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/timer.h"
 
-#include "MyClasses.h"
+#include "game_classes.h"
 #include "ILI9341_spi.h"
-#include "bitmaps.h"
+#include "helicopter_sprites.h"
+
+//Graficos externos
+extern unsigned char pointer[];
+extern unsigned char title_screen_bg[];
+extern unsigned char helicopter_g_title_screen[];
+extern unsigned char helicopter_r_title_screen[];
 
 //Classes
-Player helicopter1(32, 16, helicopter_g);
-Player helicopter2(32, 16, helicopter_r);
+File root;
+File txtFile;
+Player helicopter1(32, 16, helicopter_g, helicopter_g_hit);
+Player helicopter2(32, 16, helicopter_r, helicopter_r_hit);
 
-Menu_pointer m_pointer(16, 16, pointer);
+Menu_pointer m_pointer(20, 16, pointer);
 
 //Game Status
 typedef enum GameStateType
@@ -33,14 +42,14 @@ typedef enum GameStateType
 GameStateType gameStatus = MENU;
 
 //Player buttons
-#define P1Left  18
-#define P1Right 17
-#define P1Up    38
-#define P1Shoot 37
-#define P2Left  13
-#define P2Right 12
-#define P2Up    33
-#define P2Shoot 32
+#define P1Left  38
+#define P1Right 37
+#define P1Up    36
+#define P1Shoot 35
+#define P2Left  34
+#define P2Right 33
+#define P2Up    32
+#define P2Shoot 31
 
 //Game vars
 int tiempo = 0;
@@ -51,8 +60,10 @@ int prev_scoreP1 = 1; //Diferente a 0 para mostrar el punteo desde el inicio
 int prev_scoreP2 = 1;
 
 //Other vars
-int backgroundColor = 0x0000;
-int fontColor = 0xFFFF;
+int game_bgColor = 0x0000;
+int menu_bgColor = 0x3DDF;
+int fontColor1 = 0xFC00;
+int fontColor2 = 0xFFFF;
 
 void setup() {
   //Hardware setup
@@ -70,13 +81,15 @@ void setup() {
   SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
   Serial.begin(115200);
   SPI.setModule(3); //SPI for LCD
-  Serial.println("Inicio");
+   Serial.println("Inicio");
   LCD_Init();
   delay(10);
 }
 
+
 void loop() {
   if (gameStatus == MENU) {
+     Serial.println("In menu");
     draw_menu();
     menu_loop();
   }
@@ -86,74 +99,73 @@ void loop() {
       execute_game();
     }
   }
+  else if (gameStatus == HELP){
+    //read_SD();
+  }
 }
 
-
-
 void draw_menu() {
-  LCD_Clear(0x0000);
-  LCD_Print("HELICOPTERS", 80, 20, 2, 0xFC00, 0x0000);
-  LCD_Print("PLAY", 128, 100, 2, 0xffff, 0x0000);
-  LCD_Print("SCORES", 112, 120, 2, 0xffff, 0x0000);
-  LCD_Print("HELP", 128, 140, 2, 0xffff, 0x0000);
-  LCD_Print("CREDITS", 104, 160, 2, 0xffff, 0x0000);
-  m_pointer.set_to(64, 100, 0x0000);
-  m_pointer.set_to(64, 100, 0x0000);//Repeat to set previous coordinates
+  //LCD_Bitmap(0, 0, 320, 240, title_screen_bg);
+  LCD_Print("PLAY", 128, 110, 2, fontColor2, menu_bgColor);
+  LCD_Print("HELP", 128, 130, 2, fontColor2, menu_bgColor);
+  LCD_Print("CREDITS", 104, 150, 2, fontColor2, menu_bgColor);
+  m_pointer.set_to(80, 110, menu_bgColor);
+  m_pointer.set_to(80, 110, menu_bgColor);//Repeat to set previous coordinates
 
 }
 
 void menu_loop() {
-  int selectColor = 0xFC00;
-
   while (digitalRead(P1Up)) {
     //Cycle through options
     if (!digitalRead(P1Left)) {
       delay(500);
       m_pointer.y_pos -= 20;
-      if (m_pointer.y_pos < 100) m_pointer.y_pos = 160;
-      m_pointer.set_to(64, m_pointer.y_pos, backgroundColor);
+      if (m_pointer.y_pos < 110) m_pointer.y_pos = 150;
+      m_pointer.set_to(80, m_pointer.y_pos, menu_bgColor);
     }
     else if (!digitalRead(P1Right)) {
       delay(500);
       m_pointer.y_pos += 20;
-      if (m_pointer.y_pos > 160) m_pointer.y_pos = 100;
-      m_pointer.set_to(64, m_pointer.y_pos, backgroundColor);
+      if (m_pointer.y_pos > 150) m_pointer.y_pos = 110;
+      m_pointer.set_to(80, m_pointer.y_pos, menu_bgColor);
     }
+    animation_counter++;
+    m_pointer.update_display(animation_counter);
+    LCD_Sprite(15, 80, 32, 20, helicopter_g_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
+    LCD_Sprite(120, 80, 32, 20, helicopter_r_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
   }
   //Next page
   switch (m_pointer.y_pos) {
-    case 100:
-      LCD_Print("PLAY", 128, 100, 2, selectColor, backgroundColor);
+    case 110:
+      LCD_Print("PLAY", 128, 110, 2, fontColor1, menu_bgColor);
       delay(200);
-      LCD_Print("PLAY", 128, 100, 2, fontColor, backgroundColor);
+      LCD_Print("PLAY", 128, 110, 2, fontColor2, menu_bgColor);
       delay(200);
-      LCD_Print("PLAY", 128, 100, 2, selectColor, backgroundColor);
+      LCD_Print("PLAY", 128, 110, 2, fontColor1, menu_bgColor);
       gameStatus = PLAYING;
+
+      for (int x; x < 100; x++) {
+        animation_counter++;
+        LCD_Sprite(15 + x, 80, 32, 20, helicopter_g_title_screen, 4, (animation_counter / 5) % 4, 0, 0);
+        LCD_Sprite(120 + x, 80, 32, 20, helicopter_r_title_screen, 4, (animation_counter / 5) % 4, 0, 0);
+        V_line(15 + x, 80, 20, menu_bgColor);
+        V_line(120 + x, 80, 20, menu_bgColor);
+      }
       break;
-    case 120:
-      LCD_Print("SCORES", 112, 120, 2, selectColor, backgroundColor);
+    case 130:
+      LCD_Print("HELP", 128, 130, 2, fontColor1, menu_bgColor);
       delay(200);
-      LCD_Print("SCORES", 112, 120, 2, fontColor, backgroundColor);
+      LCD_Print("HELP", 128, 130, 2, fontColor2, menu_bgColor);
       delay(200);
-      LCD_Print("SCORES", 112, 120, 2, selectColor, backgroundColor);
-      delay(200);
-      gameStatus = MENU;
+      LCD_Print("HELP", 128, 130, 2, fontColor1, menu_bgColor);
+      gameStatus = HELP;
       break;
-    case 140:
-      LCD_Print("HELP", 128, 140, 2, selectColor, backgroundColor);
+    case 150:
+      LCD_Print("CREDITS", 104, 150, 2, fontColor1, menu_bgColor);
       delay(200);
-      LCD_Print("HELP", 128, 140, 2, fontColor, backgroundColor);
+      LCD_Print("CREDITS", 104, 150, 2, fontColor2, menu_bgColor);
       delay(200);
-      LCD_Print("HELP", 128, 140, 2, selectColor, backgroundColor);
-      gameStatus = MENU;
-      //gameStatus = HELP;
-      break;
-    case 160:
-      LCD_Print("CREDITS", 104, 160, 2, selectColor, backgroundColor);
-      delay(200);
-      LCD_Print("CREDITS", 104, 160, 2, fontColor, backgroundColor);
-      delay(200);
-      LCD_Print("CREDITS", 104, 160, 2, selectColor, backgroundColor);
+      LCD_Print("CREDITS", 104, 150, 2, fontColor1, menu_bgColor);
       //gameStatus = CREDITS;
       gameStatus = MENU;
       break;
@@ -179,8 +191,8 @@ void draw_backgroud() {
 void execute_game() {
   helicopter1.define_bullet(16, 4, bullet, 26, 28, explotion);
   helicopter2.define_bullet(16, 4, bullet, 26, 28, explotion);
-  helicopter1.set_to(20, 40);
-  helicopter2.set_to(84, 40);
+  helicopter1.set_to(10, 100);
+  helicopter2.set_to(10, 120);
   delay(1000);
 
   while (true) {
@@ -209,7 +221,7 @@ void execute_game() {
     if (!digitalRead(P2Shoot)) {
       delay(250);
       helicopter2.shoot(tiempo);
-    }    
+    }
     update_game();
     update_scores();
     tiempo += 2;
@@ -258,3 +270,37 @@ int are_colliding(hitbox h1, hitbox h2) {
   return ((h1.x + h1.w > h2.x) && (h1.x < h2.x + h2.w) &&
           (h1.y + h1.h > h2.y) && (h1.y < h2.y + h2.h));
 }
+
+/*void read_SD() {
+  SPI.setModule(0);
+
+  Serial.print("Initializing SD card...");
+  pinMode(10, OUTPUT);
+
+  if (!SD.begin(12)) {
+    Serial.println("initialization failed!");
+    return;
+  }
+  Serial.println("initialization done.\n");
+
+  root = SD.open("ASCII_~1/");
+
+  getFiles(root);
+  Serial.println("done!");  
+}
+
+String directory[3];
+void getFiles(File root) {
+  int i = 0;
+   while(true) {
+     
+     File entry = root.openNextFile();
+     if (!entry) {
+       // no more files
+       break;
+     }
+     directory[i] = entry.name();
+     entry.close();
+     i++;
+   }
+}*/

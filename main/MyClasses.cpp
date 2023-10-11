@@ -1,4 +1,4 @@
-#include "MyClasses.h"
+#include "game_classes.h"
 #include "ILI9341_spi.h"
 
 const int LCD_min_x = 6;
@@ -7,28 +7,32 @@ const int LCD_min_y = 33;
 const int LCD_max_y = 207;
 const int backgroundColor = 0x0000;
 
-const float a = 0.03;
-const float vel_leap = 0.5;
+const float a = 0.02;
+const float vel_leap = 0.3;
 const float vel_bullet = 5;
 
 /*********************************************************************************************************
   PLAYER
 *********************************************************************************************************/
-Player::Player(unsigned int w, unsigned int h, unsigned char* bitmap) {
+Player::Player(unsigned int w, unsigned int h, unsigned char* sprite, unsigned char* sprite_hit) {
   _width_heli = w;
   _height_heli = h;
-  _sprite_heli = bitmap;
+  _sprite_heli = sprite;
+  _sprite_heli_hit = sprite_hit;
 }
 
 void Player::update_display(unsigned int t, unsigned int counter) {
-  unsigned int animation = (counter / 5 % 3);
-  free_fall(t);
+  unsigned int animation;
   update_bullet(t);
-  if (t - t0_immunity < 200) {
-    LCD_Sprite(_x_pos_heli, _y_pos_heli, _width_heli, _height_heli, _sprite_heli, 3, 2, 0, 0);
+  if (t - t0_immunity < 100) {
+    animation = (counter / 5 % 2);
+    LCD_Sprite(_x_pos_heli, _y_pos_heli, _width_heli, _height_heli, _sprite_heli_hit, 2, animation, 0, 0);
     hitbox_heli = {0, 0, 0, 0};
+    leap(t);
   }
   else {
+    free_fall(t);
+    animation = (counter / 5 % 3);
     LCD_Sprite(_x_pos_heli, _y_pos_heli, _width_heli, _height_heli, _sprite_heli, 3, animation, 0, 0);
     hitbox_heli = {_x_pos_heli, _y_pos_heli, _width_heli, _height_heli};
   }
@@ -140,7 +144,6 @@ void Player::shoot(unsigned int t) {
 }
 
 void Player::update_bullet(unsigned int t) {
-  Serial.println(bullet_state);
   switch (bullet_state) {
     case IDLE:
       hitbox_bullet = {0, 0, 0, 0};
@@ -174,10 +177,10 @@ void Player::update_bullet(unsigned int t) {
   }
 }
 
-Menu_pointer::Menu_pointer(unsigned int w, unsigned int h, unsigned char* bitmap) {
+Menu_pointer::Menu_pointer(unsigned int w, unsigned int h, unsigned char* sprite) {
   _width = w;
   _height = h;
-  _bitmap = bitmap;
+  _sprite = sprite;
 }
 
 void Menu_pointer::set_to(unsigned int x, unsigned int y, unsigned int color) {
@@ -186,5 +189,10 @@ void Menu_pointer::set_to(unsigned int x, unsigned int y, unsigned int color) {
   _y_prev = y_pos;
   _x_pos = x;
   y_pos = y;
-  LCD_Bitmap(_x_pos, y_pos, _width, _height, _bitmap);
+}
+
+void Menu_pointer::update_display(unsigned int counter) {
+  unsigned int animation;
+  animation = (counter / 20 % 4);
+  LCD_Sprite(_x_pos, y_pos, _width, _height, _sprite, 4, animation, 0, 0);
 }
