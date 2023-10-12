@@ -274,7 +274,10 @@ void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int
     for (int j = 0; j < height; j++) {
       LCD_DATA(bitmap[k]);
       LCD_DATA(bitmap[k+1]);
-      //LCD_DATA(bitmap[k]);    
+      /*Serial.print(bitmap[k],HEX);
+      Serial.print(" ");
+      Serial.print(bitmap[k+1],HEX);
+      Serial.println();*/
       k = k + 2;
      } 
   }

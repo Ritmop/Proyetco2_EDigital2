@@ -25,8 +25,6 @@ extern unsigned char helicopter_r_title_screen[];
 Player helicopter1(32, 16, helicopter_g, helicopter_g_hit);
 Player helicopter2(32, 16, helicopter_r, helicopter_r_hit);
 Menu_pointer m_pointer(20, 16, pointer);
-File root;
-File txtFile;
 
 //Game Status
 typedef enum GameStateType
@@ -107,13 +105,13 @@ void loop() {
     }
   }
   else if (gameStatus == HELP) {
-    getFiles();
+    imageFromSD("COPTER~1/TITLES~1.TXT");
     gameStatus = MENU;
   }
 }
 
 void draw_menu() {
-  LCD_Bitmap(0, 0, 320, 240, title_screen_bg);
+  LCD_Clear(0x0000);
   LCD_Print("PLAY", 128, 110, 2, fontColor2, menu_bgColor);
   LCD_Print("HELP", 128, 130, 2, fontColor2, menu_bgColor);
   LCD_Print("CREDITS", 104, 150, 2, fontColor2, menu_bgColor);
@@ -280,7 +278,13 @@ int are_colliding(hitbox h1, hitbox h2) {
 }
 
 
-String directory[3];
+
+File root;
+File txtFile;
+#define array_size 3200
+//Hacer 48 corridas de 5px de alto cada una para crear la pantalla desde la SD.
+//320*5*2 = 3200 bytes
+unsigned char temp_image_data[array_size];
 
 void SD_init() {
   Serial.print("Initializing SD card...");
@@ -293,27 +297,25 @@ void SD_init() {
   digitalWrite(SD_CS, HIGH);//Deselect SD
 }
 
-void getFiles() {
-  root = SD.open("COPTER~1/");
-  int i = 0;
-  while (true) {
-
-    File entry = root.openNextFile();
-    if (!entry) {
-      // no more files
-      break;
+void imageFromSD(String archivo_ASCII) {
+  int y_offset = 0;
+  txtFile = SD.open(archivo_ASCII.c_str(), FILE_READ);
+  if (txtFile) {
+    // read from the file until there's nothing else in it:
+    char readByte = 0;
+    while (txtFile.available()) {
+      for (int i = 0; i <= array_size; i++) {
+        readByte = txtFile.read();
+        temp_image_data[i] = readByte;
+      }        
+    digitalWrite(SD_CS, HIGH);//Deselect SD
+    LCD_Bitmap(0, y_offset, 320, 5, temp_image_data);
+    y_offset += 5;
     }
-    directory[i] = entry.name();
-    entry.close();
-    i++;
+    // close the file:
+    txtFile.close();
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("Error while opening file.");
   }
-  root.close();
-
-  Serial.println("\nFiles: ");
-  Serial.print("1. ");
-  Serial.println(directory[0]);
-  Serial.print("2. ");
-  Serial.println(directory[1]);
-  Serial.print("3. ");
-  Serial.println(directory[2]);
 }
