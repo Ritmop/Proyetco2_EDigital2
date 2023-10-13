@@ -111,7 +111,7 @@ void loop() {
 }
 
 void draw_menu() {
-  LCD_Clear(0x0000);
+  //LCD_Clear(0x0000);
   LCD_Print("PLAY", 128, 110, 2, fontColor2, menu_bgColor);
   LCD_Print("HELP", 128, 130, 2, fontColor2, menu_bgColor);
   LCD_Print("CREDITS", 104, 150, 2, fontColor2, menu_bgColor);
@@ -281,9 +281,9 @@ int are_colliding(hitbox h1, hitbox h2) {
 
 File root;
 File txtFile;
-#define array_size 3200
-//Hacer 48 corridas de 5px de alto cada una para crear la pantalla desde la SD.
-//320*5*2 = 3200 bytes
+#define array_size 9600
+//Hacer 16 corridas de 15px de alto cada una para crear la pantalla desde la SD.
+//320*15*2 = 9600 bytes
 unsigned char temp_image_data[array_size];
 
 void SD_init() {
@@ -297,20 +297,29 @@ void SD_init() {
   digitalWrite(SD_CS, HIGH);//Deselect SD
 }
 
+//Las imagenes están almacenadas en formato ASCII
+//Cada caracter representa un nibble del número hexadecimal
+//de cada par el primero es el nibble alto y el segundo el nibble bajo
 void imageFromSD(String archivo_ASCII) {
   int y_offset = 0;
   txtFile = SD.open(archivo_ASCII.c_str(), FILE_READ);
   if (txtFile) {
     // read from the file until there's nothing else in it:
-    char readByte = 0;
     while (txtFile.available()) {
-      for (int i = 0; i <= array_size; i++) {
-        readByte = txtFile.read();
-        temp_image_data[i] = readByte;
-      }        
-    digitalWrite(SD_CS, HIGH);//Deselect SD
-    LCD_Bitmap(0, y_offset, 320, 5, temp_image_data);
-    y_offset += 5;
+      char highNibble = 0;
+      char lowNibble = 0;
+      int i = 0;
+      digitalWrite(SD_CS, LOW);//Select SD
+      for (i; i < array_size; i++) {
+        highNibble = txtFile.read() - 48;
+        lowNibble = txtFile.read() - 48;
+        temp_image_data[i] = highNibble * 16 + lowNibble; //Unir los nibbles
+        //Serial.println(temp_image_data[i], HEX);
+      }
+      digitalWrite(SD_CS, HIGH);//Deselect SD
+      //delay(2000);
+      LCD_Bitmap(0, y_offset, 320, 15, temp_image_data);
+      y_offset += 15;
     }
     // close the file:
     txtFile.close();
