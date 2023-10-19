@@ -1,6 +1,6 @@
 # Abre el archivo .txt en modo lectura de texto
 with open('c:/Users/judah/OneDrive/Escritorio/Proyectos Varios/ElectronicaDigital2/Energia-TivaC/Proyetco2_EDigital2/valores_hex.txt', 'r') as file_txt:
-    # Lee el contenido del archivo y elimina los caracteres especiales y la cadena 0x
+    # Lee el contenido del archivo y elimina los caracteres especiales, espacios y la cadena 0x
     mi_string = file_txt.read().replace('\n', '').replace('\r', '').replace(' ', '').replace("0x", "")
 
 # Separa los valores hexadecimales en una lista
@@ -22,9 +22,9 @@ for valor_hex in valores_hex:
     valor_ascii2 = chr(numero_decimal2 + 48)    
 
     ascii_string += valor_ascii1 + valor_ascii2    
-    print(f"H {nibble1} > {valor_ascii1} --- L {nibble2} > {valor_ascii2}")
+    #print(f"H {nibble1} > {valor_ascii1} --- L {nibble2} > {valor_ascii2}")
 
-#print("Valores ASCII:", ascii_string)
+print("Valores ASCII:", ascii_string)
 
 # Guarda el string ASCII en un archivo de texto
 with open('c:/Users/judah/OneDrive/Escritorio/Proyectos Varios/ElectronicaDigital2/Energia-TivaC/Proyetco2_EDigital2/archivo_ascii.txt', 'w') as file_ascii:

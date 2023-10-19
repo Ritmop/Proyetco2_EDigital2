@@ -24,11 +24,13 @@ Player::Player(unsigned int w, unsigned int h, unsigned char* sprite, unsigned c
 void Player::update_display(unsigned int t, unsigned int counter) {
   unsigned int animation;
   update_bullet(t);
-  if (t - t0_immunity < 100) {
+  
+  if (immunity) {
+    set_to(10,120);
     animation = (counter / 5 % 2);
     LCD_Sprite(_x_pos_heli, _y_pos_heli, _width_heli, _height_heli, _sprite_heli_hit, 2, animation, 0, 0);
     hitbox_heli = {0, 0, 0, 0};
-    leap(t);
+    _t0_leap = t;
   }
   else {
     free_fall(t);
@@ -39,9 +41,7 @@ void Player::update_display(unsigned int t, unsigned int counter) {
 }
 
 void Player::set_to(unsigned int x, unsigned int y) {
-  /*FillRect(_x_prev, _y_prev, _width, _height, color);
-    _x_prev = _x_pos_heli;
-    _y_prev = _y_pos_heli;*/
+  FillRect(_x_pos_heli, _y_pos_heli, _width_heli, _height_heli, backgroundColor);
   _x_pos_heli = x;
   _y_pos_heli = y;
 }
@@ -195,4 +195,28 @@ void Menu_pointer::update_display(unsigned int counter) {
   unsigned int animation;
   animation = (counter / 20 % 4);
   LCD_Sprite(_x_pos, y_pos, _width, _height, _sprite, 4, animation, 0, 0);
+}
+
+Obstacle::Obstacle(unsigned int x, unsigned int u,unsigned int w, unsigned int h, unsigned char* bitmap) {
+  _width = w;
+  _height = h;
+  _bitmap = bitmap;
+  x_pos = x;
+  _y_pos = u ? (32) : (207 - _height);  
+}
+
+void Obstacle::restart(unsigned int u,unsigned int w, unsigned int h, unsigned char* bitmap) {
+  FillRect(x_pos, _y_pos, _width, _height, backgroundColor);
+  _width = w;
+  _height = h;
+  _bitmap = bitmap;
+  x_pos = 320 - _width;
+  _y_pos = u ? (32) : (207 - _height);
+  hitbox_obstacle = {x_pos, _y_pos, _width, _height};
+};
+
+void Obstacle::update_display() {
+  x_pos--;
+  LCD_Bitmap(x_pos, _y_pos, _width, _height, _bitmap);
+  hitbox_obstacle = {x_pos, _y_pos, _width, _height};
 }

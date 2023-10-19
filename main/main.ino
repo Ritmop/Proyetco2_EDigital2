@@ -13,18 +13,41 @@
 
 #include "game_classes.h"
 #include "ILI9341_spi.h"
-#include "helicopter_sprites.h"
 
 //Graficos externos
 extern unsigned char pointer[];
-extern unsigned char title_screen_bg[];
 extern unsigned char helicopter_g_title_screen[];
 extern unsigned char helicopter_r_title_screen[];
 
+extern unsigned char helicopter_g[];
+extern unsigned char helicopter_g_hit[];
+extern unsigned char helicopter_r[];
+extern unsigned char helicopter_r_hit[];
+extern unsigned char bullet[];
+extern unsigned char explotion[];
+
+extern unsigned char pico64d[];
+extern unsigned char pico50d[];
+extern unsigned char pico32d[];
+extern unsigned char pico64u[];
+extern unsigned char pico50u[];
+extern unsigned char pico32u[];
+
+extern unsigned char topBlock[];
+extern unsigned char bottomBlock[];
+extern unsigned char internalBlock[];
+
+extern unsigned char hearts[];
+
 //Objects
+Menu_pointer m_pointer(20, 16, pointer);
+
 Player helicopter1(32, 16, helicopter_g, helicopter_g_hit);
 Player helicopter2(32, 16, helicopter_r, helicopter_r_hit);
-Menu_pointer m_pointer(20, 16, pointer);
+
+Obstacle Obs1(1, 0, 32, 32, pico32d);
+Obstacle Obs2(81, 1, 32, 32, pico32u);
+Obstacle Obs3(161, 1, 32, 32, pico32u);
 
 //Game Status
 typedef enum GameStateType
@@ -36,7 +59,7 @@ typedef enum GameStateType
   CREDITS = 4,
   GAME_OVER = 5
 } GameStateType;
-GameStateType gameStatus = MENU;
+GameStateType gameStatus = PLAYING;
 
 //Player buttons
 #define P1Left  38
@@ -51,10 +74,10 @@ GameStateType gameStatus = MENU;
 //Game vars
 int tiempo = 0;
 int animation_counter = 0;
-int scoreP1 = 0;
-int scoreP2 = 0;
-int prev_scoreP1 = 1; //Diferente a 0 para mostrar el punteo desde el inicio
-int prev_scoreP2 = 1;
+int livesP1 = 3;
+int livesP2 = 3;
+int prev_livesP1 = 4; //Diferente al inicial para mostrar el punteo desde el inicio
+int prev_livesP2 = 4;
 
 //Other vars
 const int game_bgColor = 0x0000;
@@ -90,6 +113,7 @@ void setup() {
   LCD_Init();
   delay(10);
   Serial.println("SD & LDC init");
+  LCD_Clear(0x0000);
 }
 
 
@@ -105,13 +129,17 @@ void loop() {
     }
   }
   else if (gameStatus == HELP) {
-    imageFromSD("COPTER~1/TITLES~1.TXT");
+    FillRect(0, 0, 64, 240, 0xffff);
+    FillRect(64, 0, 64, 240, 0xffff);
+    FillRect(128, 0, 64, 240, 0xffff);
+    FillRect(192, 0, 64, 240, 0xffff);
+    FillRect(256, 0, 64, 240, 0xffff);
     gameStatus = MENU;
   }
 }
 
 void draw_menu() {
-  //LCD_Clear(0x0000);
+  imageFromSD("COPTER~1/TITLES~1.TXT");
   LCD_Print("PLAY", 128, 110, 2, fontColor2, menu_bgColor);
   LCD_Print("HELP", 128, 130, 2, fontColor2, menu_bgColor);
   LCD_Print("CREDITS", 104, 150, 2, fontColor2, menu_bgColor);
@@ -182,12 +210,14 @@ void menu_loop() {
 }
 
 void draw_backgroud() {
+  helicopter1.set_to(10, 100);//Set initial values for helicopters
+  helicopter2.set_to(10, 120);
   LCD_Clear(0x0000);
   for (int x = 0; x < 319;) {
-    LCD_Bitmap(x, 0, 16, 16, tile2);
-    LCD_Bitmap(x, 16, 16, 16, tile);
-    LCD_Bitmap(x, 207, 16, 16, tile);
-    LCD_Bitmap(x, 223, 16, 16, tile2);
+    LCD_Bitmap(x, 0, 16, 16, internalBlock);
+    LCD_Bitmap(x, 16, 16, 16, topBlock);
+    LCD_Bitmap(x, 207, 16, 16, bottomBlock);
+    LCD_Bitmap(x, 223, 16, 16, internalBlock);
     x += 16;
   }
   LCD_Print("P1:", 0, 0, 2, 0x0000, 0xdd55);
@@ -202,6 +232,7 @@ void execute_game() {
   delay(1000);
 
   while (true) {
+    //Read player commands
     if (!digitalRead(P1Left)) {
       helicopter1.move_left();
     }
@@ -215,60 +246,181 @@ void execute_game() {
       helicopter2.move_right();
     }
     if (!digitalRead(P1Up)) {
+      helicopter1.immunity = 0;
       helicopter1.leap(tiempo);
     }
     if (!digitalRead(P2Up)) {
+      helicopter2.immunity = 0;
       helicopter2.leap(tiempo);
     }
-    if (!digitalRead(P1Shoot)) {
+    if (!digitalRead(P1Shoot) && !helicopter1.immunity) {
       delay(250);
       helicopter1.shoot(tiempo);
     }
-    if (!digitalRead(P2Shoot)) {
+    if (!digitalRead(P2Shoot) && !helicopter2.immunity) {
       delay(250);
       helicopter2.shoot(tiempo);
     }
+    //Update game
     update_game();
-    update_scores();
+    update_lives();
     tiempo += 2;
     animation_counter++;
   }
 }
 
 void update_game() {
+  //Update players & obstacles
   helicopter1.update_display(tiempo, animation_counter);
   helicopter2.update_display(tiempo, animation_counter);
 
+  Obs1.update_display();
+  Obs2.update_display();
+  Obs3.update_display();
+
+  //Check collitions
+  //with bullets
   if (are_colliding(helicopter2.hitbox_bullet, helicopter1.hitbox_heli)) {
     helicopter2.bullet_state = EXPLOTION;//Forzar explosion del proyectil
-    helicopter1.t0_immunity = tiempo;
-    scoreP2 += 50;
+    helicopter1.immunity = 1;
+    livesP1--;
   }
   if (are_colliding(helicopter2.hitbox_heli, helicopter1.hitbox_bullet)) {
     helicopter1.bullet_state = EXPLOTION;//Forzar explosion del proyectil
-    helicopter2.t0_immunity = tiempo;
-    scoreP1 += 50;
+    helicopter2.immunity = 1;
+    livesP2--;
   }
   if (are_colliding(helicopter1.hitbox_heli, helicopter1.hitbox_bullet)) {
     helicopter1.bullet_state = EXPLOTION;//Forzar explosion del proyectil
-    helicopter1.t0_immunity = tiempo;
-    scoreP1 -= 100;
+    helicopter1.immunity = 1;
+    livesP1--;
   }
   if (are_colliding(helicopter2.hitbox_heli, helicopter2.hitbox_bullet)) {
     helicopter2.bullet_state = EXPLOTION;//Forzar explosion del proyectil
-    helicopter2.t0_immunity = tiempo;
-    scoreP1 -= 100;
+    helicopter2.immunity = 1;
+    livesP2--;
   }
+  //with obstacles
+  if (are_colliding(helicopter1.hitbox_heli, Obs1.hitbox_obstacle) || are_colliding(helicopter1.hitbox_heli, Obs2.hitbox_obstacle) || are_colliding(helicopter1.hitbox_heli, Obs3.hitbox_obstacle)) {
+    helicopter1.immunity = 1;
+    livesP1--;
+  }
+  if (are_colliding(helicopter2.hitbox_heli, Obs1.hitbox_obstacle) || are_colliding(helicopter2.hitbox_heli, Obs2.hitbox_obstacle) || are_colliding(helicopter2.hitbox_heli, Obs3.hitbox_obstacle)) {
+    helicopter2.immunity = 1;
+    livesP2--;
+  }
+
+  //Check obstacles
+  if (Obs1.x_pos <= 0) {
+    unsigned int randNum = random(0, 6);
+    switch (randNum) {
+      case 0:
+        //Small down
+        Obs1.restart(0, 32, 32, pico32d);
+        break;
+      case 1:
+        //Medium down
+        Obs1.restart(0, 32, 50, pico50d);
+        break;
+      case 2:
+        //Big down
+        Obs1.restart(0, 40, 64, pico64d);
+        break;
+      case 3:
+        //Small up
+        Obs1.restart(1, 32, 32, pico32u);
+        break;
+      case 4:
+        //Medium up
+        Obs1.restart(1, 32, 50, pico50u);
+        break;
+      case 5:
+        //Big up
+        Obs1.restart(1, 40, 64, pico64u);
+        break;
+      default:
+        //Small down
+        Obs1.restart(0, 32, 32, pico32d);
+        break;
+    }
+  }
+  if (Obs2.x_pos <= 0) {
+    unsigned int randNum = random(0, 6);
+    switch (randNum) {
+      case 0:
+        //Small down
+        Obs2.restart(0, 32, 32, pico32d);
+        break;
+      case 1:
+        //Medium down
+        Obs2.restart(0, 32, 50, pico50d);
+        break;
+      case 2:
+        //Big down
+        Obs2.restart(0, 40, 64, pico64d);
+        break;
+      case 3:
+        //Small up
+        Obs2.restart(1, 32, 32, pico32u);
+        break;
+      case 4:
+        //Medium up
+        Obs2.restart(1, 32, 50, pico50u);
+        break;
+      case 5:
+        //Big up
+        Obs2.restart(1, 40, 64, pico64u);
+        break;
+      default:
+        //Small down
+        Obs2.restart(0, 32, 32, pico32d);
+        break;
+    }
+  }
+  if (Obs3.x_pos <= 0) {
+    unsigned int randNum = random(0, 6);
+    switch (randNum) {
+      case 0:
+        //Small down
+        Obs3.restart(0, 32, 32, pico32d);
+        break;
+      case 1:
+        //Medium down
+        Obs3.restart(0, 32, 50, pico50d);
+        break;
+      case 2:
+        //Big down
+        Obs3.restart(0, 40, 64, pico64d);
+        break;
+      case 3:
+        //Small up
+        Obs3.restart(1, 32, 32, pico32u);
+        break;
+      case 4:
+        //Medium up
+        Obs3.restart(1, 32, 50, pico50u);
+        break;
+      case 5:
+        //Big up
+        Obs3.restart(1, 40, 64, pico64u);
+        break;
+      default:
+        //Small down
+        Obs3.restart(0, 32, 32, pico32d);
+        break;
+    }
+  }
+
 }
 
-void update_scores() {
-  if (scoreP1 != prev_scoreP1) {
-    LCD_Print(String(scoreP1), 48, 0, 1, 0x0000, 0xdd55);
-    prev_scoreP1 = scoreP1;
+void update_lives() {
+  if (livesP1 != prev_livesP1) {
+    LCD_Sprite(48, 0, 60, 16, hearts,4, livesP1, 0, 0);
+    prev_livesP1 = livesP1;
   }
-  if (scoreP2 != prev_scoreP2) {
-    LCD_Print(String(scoreP2), 256, 0, 1, 0x0000, 0xdd55);
-    prev_scoreP2 = scoreP2;
+  if (livesP2 != prev_livesP2) {
+    LCD_Sprite(256, 0, 60, 16, hearts,4, livesP2, 0, 0);
+    prev_livesP2 = livesP2;
   }
 }
 
@@ -301,23 +453,20 @@ void SD_init() {
 //Cada caracter representa un nibble del número hexadecimal
 //de cada par el primero es el nibble alto y el segundo el nibble bajo
 void imageFromSD(String archivo_ASCII) {
-  int y_offset = 0;
   txtFile = SD.open(archivo_ASCII.c_str(), FILE_READ);
   if (txtFile) {
+    int y_offset = 0;
+    char highNibble = 0;
+    char lowNibble = 0;
     // read from the file until there's nothing else in it:
     while (txtFile.available()) {
-      char highNibble = 0;
-      char lowNibble = 0;
-      int i = 0;
-      digitalWrite(SD_CS, LOW);//Select SD
-      for (i; i < array_size; i++) {
-        highNibble = txtFile.read() - 48;
-        lowNibble = txtFile.read() - 48;
+      for (int i = 0; i < array_size; i++) {
+        highNibble = txtFile.read() - '0';
+        lowNibble = txtFile.read() - '0';
         temp_image_data[i] = highNibble * 16 + lowNibble; //Unir los nibbles
         //Serial.println(temp_image_data[i], HEX);
       }
       digitalWrite(SD_CS, HIGH);//Deselect SD
-      //delay(2000);
       LCD_Bitmap(0, y_offset, 320, 15, temp_image_data);
       y_offset += 15;
     }

@@ -1,6 +1,8 @@
 #ifndef _GAME_CLASSES_H_
 #define _GAME_CLASSES_H_
 
+//Esta estructura define un rectángulo,
+//se utiliza para definir los hitbox de cada class
 struct hitbox {
   unsigned int x;
   unsigned int y;
@@ -8,6 +10,8 @@ struct hitbox {
   unsigned int h;
 };
 
+//Este tipo identifica el estado de los proyectiles
+//lanzados por el helicoptero
 typedef enum bulletState
 {
   IDLE = 0,
@@ -16,6 +20,7 @@ typedef enum bulletState
   REMOVE = 3
 } bulletState;
 
+//Clase jugador (helicopteros)
 class Player {
   public:
     Player(unsigned int w, unsigned int h, unsigned char* sprite, unsigned char* sprite_hit);
@@ -31,7 +36,7 @@ class Player {
 
     //Helicopter vars
     hitbox hitbox_heli;
-    unsigned int t0_immunity = 0;
+    unsigned int immunity = 0;
 
     //Bullet functions
     void define_bullet(unsigned int wB, unsigned int hB, unsigned char* bitmapB, unsigned int wE, unsigned int hE, unsigned char* bitmapE);
@@ -61,10 +66,10 @@ class Player {
     unsigned int _height_bullet;
 
     unsigned int _x_exp;
-    unsigned int _y_exp;    
+    unsigned int _y_exp;
     unsigned int _width_explotion;
     unsigned int _height_explotion;
-    
+
     unsigned int _x0_shoot;
     unsigned int _t_explotion = 0;
     unsigned char* _bitmap_bullet;
@@ -87,6 +92,24 @@ class Menu_pointer {
     unsigned int _height;
     unsigned int _x_prev;
     unsigned int _y_prev;
+};
+
+class Obstacle {
+  public:
+    Obstacle(unsigned int x, unsigned int u,unsigned int w, unsigned int h, unsigned char* bitmap);
+
+    void restart(unsigned int u,unsigned int w, unsigned int h, unsigned char* bitmap);
+    void update_display();
+
+    
+    unsigned int x_pos;
+    hitbox hitbox_obstacle;
+
+  private:
+    unsigned char* _bitmap;
+    unsigned int _width;
+    unsigned int _height;
+    unsigned int _y_pos;
 };
 
 #endif
