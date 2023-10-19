@@ -75,6 +75,19 @@ GameStateType gameStatus = MENU;
 #define P2Up    32
 #define P2Shoot 31
 
+//Sound buttons
+#define MusicMenuPIN  4
+#define MusicGamePIN  5
+#define MusicIntrPIN  6
+#define hitFxPIN      7
+#define shootFxPIN    8
+
+//UART
+#define P1TX  6 //UART 5
+#define P1RX  5
+#define P2TX  27 //UART 7
+#define P2RX  18
+
 //Game vars
 unsigned int tiempo = 0;
 unsigned int timeout_counter = 0;
@@ -84,7 +97,7 @@ unsigned int livesP2 = 3;
 unsigned int prev_livesP1 = 4; //Diferente al inicial para mostrar el punteo desde el inicio
 unsigned int prev_livesP2 = 4;
 
-//Other vars
+//Constants
 const int game_bgColor = 0x0000;
 const int HUD_bgColor = 0xDD55;
 const int menu_bgColor = 0x3DDF;
@@ -107,10 +120,26 @@ void setup() {
   pinMode(LCD_CS, OUTPUT);
   pinMode(SD_CS, OUTPUT);
 
+  pinMode(MusicMenuPIN, OUTPUT);
+  pinMode(MusicGamePIN, OUTPUT);
+  pinMode(MusicIntrPIN, OUTPUT);
+  pinMode(shootFxPIN, OUTPUT);
+  pinMode(hitFxPIN, OUTPUT);
+  digitalWrite(MusicMenuPIN, HIGH);
+  digitalWrite(MusicGamePIN, HIGH);
+  digitalWrite(MusicIntrPIN, HIGH);
+  digitalWrite(shootFxPIN, HIGH);
+  digitalWrite(hitFxPIN, HIGH);
+
+  //Serial Setup
+  Serial.begin(115200); //PC com
+  //Serial5.begin(9600);
+  //Serial7.begin(9600);
+
   //LCD Setup
   SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
-  Serial.begin(115200);
 
+  //SD Setup
   SPI.setModule(3); //SPI for LCD
   digitalWrite(LCD_CS, LOW);    //Select LCD
   digitalWrite(SD_CS, HIGH);
@@ -126,10 +155,12 @@ void setup() {
 
 void loop() {
   if (gameStatus == MENU) {
+    music_select(MusicMenuPIN);
     draw_menu();
     menu_loop();
   }
   else if (gameStatus == PLAYING) {
+    music_select(MusicGamePIN);
     draw_backgroud();
     execute_game();
   }
@@ -148,6 +179,12 @@ void loop() {
       LCD_Sprite(15, 80, 32, 20, helicopter_g_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
       LCD_Sprite(120, 80, 32, 20, helicopter_r_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
     }
+    LCD_Print("MENU", 220, 90, 2, fontColorYellow, menu_bgColor);
+      delay(200);
+    LCD_Print("MENU", 220, 90, 2, fontColorWhite, menu_bgColor);
+      delay(200);
+    LCD_Print("MENU", 220, 90, 2, fontColorYellow, menu_bgColor);
+    play_sound_fx(shootFxPIN);
     gameStatus = MENU;
   }
   else if (gameStatus == CREDITS) {
@@ -163,21 +200,28 @@ void loop() {
       LCD_Sprite(15, 80, 32, 20, helicopter_g_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
       LCD_Sprite(120, 80, 32, 20, helicopter_r_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
     }
+    LCD_Print("MENU", 220, 90, 2, fontColorYellow, menu_bgColor);
+      delay(200);
+    LCD_Print("MENU", 220, 90, 2, fontColorWhite, menu_bgColor);
+      delay(200);
+    LCD_Print("MENU", 220, 90, 2, fontColorYellow, menu_bgColor);
+    play_sound_fx(shootFxPIN);
     gameStatus = MENU;
   }
   else if (gameStatus == GAME_OVER_P1_WIN) {
-    LCD_Print("Player 1 Wins!", 48, 100, 2, fontColorYellow, HUD_bgColor);
+    LCD_Print("Player 1 Wins!", 48, 216, 2, fontColorYellow, HUD_bgColor);
     delay(200);
-    LCD_Print("Player 1 Wins!", 48, 100, 2, fontColorBlack, HUD_bgColor);
+    LCD_Print("Player 1 Wins!", 48, 216, 2, fontColorBlack, HUD_bgColor);
     delay(200);
-    LCD_Print("Player 1 Wins!", 48, 100, 2, fontColorYellow, HUD_bgColor);
+    LCD_Print("Player 1 Wins!", 48, 216, 2, fontColorYellow, HUD_bgColor);
     delay(200);
-    LCD_Print("Player 1 Wins!", 48, 100, 2, fontColorBlack, HUD_bgColor);
+    LCD_Print("Player 1 Wins!", 48, 216, 2, fontColorBlack, HUD_bgColor);
     delay(200);
-    LCD_Print("Player 1 Wins!", 48, 100, 2, fontColorYellow, HUD_bgColor);
+    LCD_Print("Player 1 Wins!", 48, 216, 2, fontColorYellow, HUD_bgColor);
     delay(200);
-    LCD_Print("Player 1 Wins!", 48, 100, 2, fontColorBlack, HUD_bgColor);
+    LCD_Print("Player 1 Wins!", 48, 216, 2, fontColorBlack, HUD_bgColor);
     while (digitalRead(P1Up));
+    play_sound_fx(shootFxPIN);
     gameStatus = MENU;
   }
   else if (gameStatus == GAME_OVER_P2_WIN) {
@@ -193,6 +237,7 @@ void loop() {
     delay(200);
     LCD_Print("Player 2 Wins!", 48, 216, 2, fontColorBlack, HUD_bgColor);
     while (digitalRead(P2Up));
+    play_sound_fx(shootFxPIN);
     gameStatus = MENU;
   }
 }
@@ -227,6 +272,8 @@ void menu_loop() {
     LCD_Sprite(15, 80, 32, 20, helicopter_g_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
     LCD_Sprite(120, 80, 32, 20, helicopter_r_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
   }
+
+  play_sound_fx(shootFxPIN);
   //Next page
   switch (m_pointer.y_pos) {
     case 110:
@@ -325,10 +372,12 @@ void execute_game() {
     }
     if (!digitalRead(P1Shoot) && !helicopter1.immunity) {
       delay(250);
+      if (helicopter1.bullet_state == IDLE) play_sound_fx(shootFxPIN);
       helicopter1.shoot(tiempo);
     }
     if (!digitalRead(P2Shoot) && !helicopter2.immunity) {
       delay(250);
+      if (helicopter2.bullet_state == IDLE) play_sound_fx(shootFxPIN);
       helicopter2.shoot(tiempo);
     }
 
@@ -346,7 +395,7 @@ void execute_game() {
 
 void update_game() {
   //Update players & obstacles
-  if (timeout_counter > 30) {
+  if (timeout_counter > 800) {
     linea_meta.update_display();
   }
 
@@ -369,30 +418,36 @@ void update_game() {
   //with bullets
   if (are_colliding(helicopter2.hitbox_bullet, helicopter1.hitbox_heli)) {
     helicopter2.bullet_state = EXPLOTION;//Forzar explosion del proyectil
+    play_sound_fx(hitFxPIN);
     helicopter1.immunity = 1;
     livesP1--;
   }
   if (are_colliding(helicopter2.hitbox_heli, helicopter1.hitbox_bullet)) {
     helicopter1.bullet_state = EXPLOTION;//Forzar explosion del proyectil
+    play_sound_fx(hitFxPIN);
     helicopter2.immunity = 1;
     livesP2--;
   }
   if (are_colliding(helicopter1.hitbox_heli, helicopter1.hitbox_bullet)) {
     helicopter1.bullet_state = EXPLOTION;//Forzar explosion del proyectil
+    play_sound_fx(hitFxPIN);
     helicopter1.immunity = 1;
     livesP1--;
   }
   if (are_colliding(helicopter2.hitbox_heli, helicopter2.hitbox_bullet)) {
     helicopter2.bullet_state = EXPLOTION;//Forzar explosion del proyectil
+    play_sound_fx(hitFxPIN);
     helicopter2.immunity = 1;
     livesP2--;
   }
   //with obstacles
   if (are_colliding(helicopter1.hitbox_heli, Obs1.hitbox_obstacle) || are_colliding(helicopter1.hitbox_heli, Obs2.hitbox_obstacle) || are_colliding(helicopter1.hitbox_heli, Obs3.hitbox_obstacle)) {
+    play_sound_fx(hitFxPIN);
     helicopter1.immunity = 1;
     livesP1--;
   }
   if (are_colliding(helicopter2.hitbox_heli, Obs1.hitbox_obstacle) || are_colliding(helicopter2.hitbox_heli, Obs2.hitbox_obstacle) || are_colliding(helicopter2.hitbox_heli, Obs3.hitbox_obstacle)) {
+    play_sound_fx(hitFxPIN);
     helicopter2.immunity = 1;
     livesP2--;
   }
@@ -504,10 +559,16 @@ void update_lives() {
   if (livesP1 != prev_livesP1) {
     LCD_Sprite(48, 0, 60, 16, hearts, 4, livesP1, 0, 0);
     prev_livesP1 = livesP1;
+    if (livesP1 <= 0) {
+      gameStatus = GAME_OVER_P2_WIN;
+    }
   }
   if (livesP2 != prev_livesP2) {
     LCD_Sprite(256, 0, 60, 16, hearts, 4, livesP2, 0, 0);
     prev_livesP2 = livesP2;
+    if (livesP2 <= 0) {
+      gameStatus = GAME_OVER_P1_WIN;
+    }
   }
 }
 
@@ -563,4 +624,20 @@ void imageFromSD(String archivo_ASCII) {
     // if the file didn't open, print an error:
     Serial.println("Error while opening file.");
   }
+}
+
+void music_select(unsigned int pinMusic) {
+  digitalWrite(MusicIntrPIN, LOW);
+  delay(100);
+  digitalWrite(MusicIntrPIN, HIGH);
+  delay(100);
+  digitalWrite(pinMusic, LOW);
+  delay(100);
+  digitalWrite(pinMusic, HIGH);
+}
+
+void play_sound_fx(unsigned int pinFX) {
+  digitalWrite(pinFX, LOW);
+  delay(10);
+  digitalWrite(pinFX, HIGH);
 }
