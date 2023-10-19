@@ -38,6 +38,7 @@ extern unsigned char bottomBlock[];
 extern unsigned char internalBlock[];
 
 extern unsigned char hearts[];
+extern unsigned char meta[];
 
 //Objects
 Menu_pointer m_pointer(20, 16, pointer);
@@ -49,6 +50,8 @@ Obstacle Obs1(1, 0, 32, 32, pico32d);
 Obstacle Obs2(81, 1, 32, 32, pico32u);
 Obstacle Obs3(161, 1, 32, 32, pico32u);
 
+Meta linea_meta(31, 176, meta);
+
 //Game Status
 typedef enum GameStateType
 {
@@ -57,9 +60,10 @@ typedef enum GameStateType
   SCORES = 2,
   HELP = 3,
   CREDITS = 4,
-  GAME_OVER = 5
+  GAME_OVER_P1_WIN = 5,
+  GAME_OVER_P2_WIN = 6
 } GameStateType;
-GameStateType gameStatus = PLAYING;
+GameStateType gameStatus = MENU;
 
 //Player buttons
 #define P1Left  38
@@ -72,18 +76,21 @@ GameStateType gameStatus = PLAYING;
 #define P2Shoot 31
 
 //Game vars
-int tiempo = 0;
+unsigned int tiempo = 0;
+unsigned int timeout_counter = 0;
 int animation_counter = 0;
-int livesP1 = 3;
-int livesP2 = 3;
-int prev_livesP1 = 4; //Diferente al inicial para mostrar el punteo desde el inicio
-int prev_livesP2 = 4;
+unsigned int livesP1 = 3;
+unsigned int livesP2 = 3;
+unsigned int prev_livesP1 = 4; //Diferente al inicial para mostrar el punteo desde el inicio
+unsigned int prev_livesP2 = 4;
 
 //Other vars
 const int game_bgColor = 0x0000;
+const int HUD_bgColor = 0xDD55;
 const int menu_bgColor = 0x3DDF;
-const int fontColor1 = 0xFC00;
-const int fontColor2 = 0xFFFF;
+const int fontColorYellow = 0xFC00;
+const int fontColorWhite = 0xFFFF;
+const int fontColorBlack = 0x0000;
 
 void setup() {
   //Hardware setup
@@ -124,25 +131,77 @@ void loop() {
   }
   else if (gameStatus == PLAYING) {
     draw_backgroud();
-    while (true) {
-      execute_game();
-    }
+    execute_game();
   }
   else if (gameStatus == HELP) {
-    FillRect(0, 0, 64, 240, 0xffff);
-    FillRect(64, 0, 64, 240, 0xffff);
-    FillRect(128, 0, 64, 240, 0xffff);
-    FillRect(192, 0, 64, 240, 0xffff);
-    FillRect(256, 0, 64, 240, 0xffff);
+    LCD_Print("MENU", 220, 90, 2, fontColorWhite, menu_bgColor);
+    m_pointer.set_to(196, 90, menu_bgColor);
+    FillRect(30, 105, 254, 80, HUD_bgColor);
+    LCD_Print("Salta y esquiva los obstaculos.", 36, 110, 1, fontColorBlack, HUD_bgColor);
+    LCD_Print("Llega a la meta antes que tu", 36, 124, 1, fontColorBlack, HUD_bgColor);
+    LCD_Print("oponente, pero no te apresures", 36, 138, 1, fontColorBlack, HUD_bgColor);
+    LCD_Print("solo tienes 3 vidas. Si estas", 36, 152, 1, fontColorBlack, HUD_bgColor);
+    LCD_Print("perdiendo ataca a tu oponente.", 36, 166, 1, fontColorBlack, HUD_bgColor);
+    while (digitalRead(P1Up) && digitalRead(P2Up)) {
+      animation_counter++;
+      m_pointer.update_display(animation_counter);
+      LCD_Sprite(15, 80, 32, 20, helicopter_g_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
+      LCD_Sprite(120, 80, 32, 20, helicopter_r_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
+    }
+    gameStatus = MENU;
+  }
+  else if (gameStatus == CREDITS) {
+    LCD_Print("MENU", 220, 90, 2, fontColorWhite, menu_bgColor);
+    m_pointer.set_to(196, 90, menu_bgColor);
+    FillRect(30, 105, 254, 80, HUD_bgColor);
+    LCD_Print("Desarrollado por:", 92, 124, 1, fontColorBlack, HUD_bgColor);
+    LCD_Print("Judah Perez - 21536", 84, 138, 1, fontColorBlack, HUD_bgColor);
+    LCD_Print("Daniel Valdez - 21976", 76, 152, 1, fontColorBlack, HUD_bgColor);
+    while (digitalRead(P1Up) && digitalRead(P2Up)) {
+      animation_counter++;
+      m_pointer.update_display(animation_counter);
+      LCD_Sprite(15, 80, 32, 20, helicopter_g_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
+      LCD_Sprite(120, 80, 32, 20, helicopter_r_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
+    }
+    gameStatus = MENU;
+  }
+  else if (gameStatus == GAME_OVER_P1_WIN) {
+    LCD_Print("Player 1 Wins!", 48, 100, 2, fontColorYellow, HUD_bgColor);
+    delay(200);
+    LCD_Print("Player 1 Wins!", 48, 100, 2, fontColorBlack, HUD_bgColor);
+    delay(200);
+    LCD_Print("Player 1 Wins!", 48, 100, 2, fontColorYellow, HUD_bgColor);
+    delay(200);
+    LCD_Print("Player 1 Wins!", 48, 100, 2, fontColorBlack, HUD_bgColor);
+    delay(200);
+    LCD_Print("Player 1 Wins!", 48, 100, 2, fontColorYellow, HUD_bgColor);
+    delay(200);
+    LCD_Print("Player 1 Wins!", 48, 100, 2, fontColorBlack, HUD_bgColor);
+    while (digitalRead(P1Up));
+    gameStatus = MENU;
+  }
+  else if (gameStatus == GAME_OVER_P2_WIN) {
+    LCD_Print("Player 2 Wins!", 48, 216, 2, fontColorYellow, HUD_bgColor);
+    delay(200);
+    LCD_Print("Player 2 Wins!", 48, 216, 2, fontColorBlack, HUD_bgColor);
+    delay(200);
+    LCD_Print("Player 2 Wins!", 48, 216, 2, fontColorYellow, HUD_bgColor);
+    delay(200);
+    LCD_Print("Player 2 Wins!", 48, 216, 2, fontColorBlack, HUD_bgColor);
+    delay(200);
+    LCD_Print("Player 2 Wins!", 48, 216, 2, fontColorYellow, HUD_bgColor);
+    delay(200);
+    LCD_Print("Player 2 Wins!", 48, 216, 2, fontColorBlack, HUD_bgColor);
+    while (digitalRead(P2Up));
     gameStatus = MENU;
   }
 }
 
 void draw_menu() {
   imageFromSD("COPTER~1/TITLES~1.TXT");
-  LCD_Print("PLAY", 128, 110, 2, fontColor2, menu_bgColor);
-  LCD_Print("HELP", 128, 130, 2, fontColor2, menu_bgColor);
-  LCD_Print("CREDITS", 104, 150, 2, fontColor2, menu_bgColor);
+  LCD_Print("PLAY", 128, 110, 2, fontColorWhite, menu_bgColor);
+  LCD_Print("HELP", 128, 130, 2, fontColorWhite, menu_bgColor);
+  LCD_Print("CREDITS", 104, 150, 2, fontColorWhite, menu_bgColor);
   m_pointer.set_to(80, 110, menu_bgColor);
   m_pointer.set_to(80, 110, menu_bgColor);//Repeat to set previous coordinates
 
@@ -171,12 +230,11 @@ void menu_loop() {
   //Next page
   switch (m_pointer.y_pos) {
     case 110:
-      LCD_Print("PLAY", 128, 110, 2, fontColor1, menu_bgColor);
+      LCD_Print("PLAY", 128, 110, 2, fontColorYellow, menu_bgColor);
       delay(200);
-      LCD_Print("PLAY", 128, 110, 2, fontColor2, menu_bgColor);
+      LCD_Print("PLAY", 128, 110, 2, fontColorWhite, menu_bgColor);
       delay(200);
-      LCD_Print("PLAY", 128, 110, 2, fontColor1, menu_bgColor);
-      gameStatus = PLAYING;
+      LCD_Print("PLAY", 128, 110, 2, fontColorYellow, menu_bgColor);
 
       for (int x; x < 100; x++) {
         animation_counter++;
@@ -184,24 +242,25 @@ void menu_loop() {
         LCD_Sprite(120 + x, 80, 32, 20, helicopter_r_title_screen, 4, (animation_counter / 5) % 4, 0, 0);
         V_line(15 + x, 80, 20, menu_bgColor);
         V_line(120 + x, 80, 20, menu_bgColor);
+
+        gameStatus = PLAYING;
       }
       break;
     case 130:
-      LCD_Print("HELP", 128, 130, 2, fontColor1, menu_bgColor);
+      LCD_Print("HELP", 128, 130, 2, fontColorYellow, menu_bgColor);
       delay(200);
-      LCD_Print("HELP", 128, 130, 2, fontColor2, menu_bgColor);
+      LCD_Print("HELP", 128, 130, 2, fontColorWhite, menu_bgColor);
       delay(200);
-      LCD_Print("HELP", 128, 130, 2, fontColor1, menu_bgColor);
+      LCD_Print("HELP", 128, 130, 2, fontColorYellow, menu_bgColor);
       gameStatus = HELP;
       break;
     case 150:
-      LCD_Print("CREDITS", 104, 150, 2, fontColor1, menu_bgColor);
+      LCD_Print("CREDITS", 104, 150, 2, fontColorYellow, menu_bgColor);
       delay(200);
-      LCD_Print("CREDITS", 104, 150, 2, fontColor2, menu_bgColor);
+      LCD_Print("CREDITS", 104, 150, 2, fontColorWhite, menu_bgColor);
       delay(200);
-      LCD_Print("CREDITS", 104, 150, 2, fontColor1, menu_bgColor);
-      //gameStatus = CREDITS;
-      gameStatus = MENU;
+      LCD_Print("CREDITS", 104, 150, 2, fontColorYellow, menu_bgColor);
+      gameStatus = CREDITS;
       break;
     default:
       gameStatus = MENU;
@@ -220,18 +279,29 @@ void draw_backgroud() {
     LCD_Bitmap(x, 223, 16, 16, internalBlock);
     x += 16;
   }
-  LCD_Print("P1:", 0, 0, 2, 0x0000, 0xdd55);
-  LCD_Print("P2:", 208, 0, 2, 0x0000, 0xdd55);
+  LCD_Print("P1:", 0, 0, 2, 0x0000, HUD_bgColor);
+  LCD_Print("P2:", 208, 0, 2, 0x0000, HUD_bgColor);
 }
 
 void execute_game() {
+  //Reset game
   helicopter1.define_bullet(16, 4, bullet, 26, 28, explotion);
-  helicopter2.define_bullet(16, 4, bullet, 26, 28, explotion);
   helicopter1.set_to(10, 100);
+  helicopter1.immunity = 1;
+  livesP1 = 3;
+  prev_livesP1 = 4;
+
+  helicopter2.define_bullet(16, 4, bullet, 26, 28, explotion);
   helicopter2.set_to(10, 120);
+  helicopter2.immunity = 1;
+  livesP2 = 3;
+  prev_livesP2 = 4;
+
+  linea_meta.x_pos = 320;
+  timeout_counter = 0;
   delay(1000);
 
-  while (true) {
+  while (gameStatus == PLAYING) {
     //Read player commands
     if (!digitalRead(P1Left)) {
       helicopter1.move_left();
@@ -261,6 +331,11 @@ void execute_game() {
       delay(250);
       helicopter2.shoot(tiempo);
     }
+
+    //Increase timeout counter
+    if (!helicopter1.immunity && !helicopter2.immunity) {
+      timeout_counter++;
+    }
     //Update game
     update_game();
     update_lives();
@@ -271,14 +346,26 @@ void execute_game() {
 
 void update_game() {
   //Update players & obstacles
-  helicopter1.update_display(tiempo, animation_counter);
-  helicopter2.update_display(tiempo, animation_counter);
+  if (timeout_counter > 30) {
+    linea_meta.update_display();
+  }
 
   Obs1.update_display();
   Obs2.update_display();
   Obs3.update_display();
 
+  helicopter1.update_display(tiempo, animation_counter);
+  helicopter2.update_display(tiempo, animation_counter);
+
   //Check collitions
+  //with finish line
+  if (are_colliding(helicopter1.hitbox_heli, linea_meta.hitbox_meta)) {
+    gameStatus = GAME_OVER_P1_WIN;
+  }
+  if (are_colliding(helicopter2.hitbox_heli, linea_meta.hitbox_meta)) {
+    gameStatus = GAME_OVER_P2_WIN;
+  }
+
   //with bullets
   if (are_colliding(helicopter2.hitbox_bullet, helicopter1.hitbox_heli)) {
     helicopter2.bullet_state = EXPLOTION;//Forzar explosion del proyectil
@@ -415,11 +502,11 @@ void update_game() {
 
 void update_lives() {
   if (livesP1 != prev_livesP1) {
-    LCD_Sprite(48, 0, 60, 16, hearts,4, livesP1, 0, 0);
+    LCD_Sprite(48, 0, 60, 16, hearts, 4, livesP1, 0, 0);
     prev_livesP1 = livesP1;
   }
   if (livesP2 != prev_livesP2) {
-    LCD_Sprite(256, 0, 60, 16, hearts,4, livesP2, 0, 0);
+    LCD_Sprite(256, 0, 60, 16, hearts, 4, livesP2, 0, 0);
     prev_livesP2 = livesP2;
   }
 }

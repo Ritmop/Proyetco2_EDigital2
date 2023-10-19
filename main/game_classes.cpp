@@ -220,3 +220,17 @@ void Obstacle::update_display() {
   LCD_Bitmap(x_pos, _y_pos, _width, _height, _bitmap);
   hitbox_obstacle = {x_pos, _y_pos, _width, _height};
 }
+
+Meta::Meta(unsigned int w, unsigned int h, unsigned char* bitmap){
+  _width = w;
+  _height = h;
+  _bitmap = bitmap;
+  x_pos = 320;
+  _y_pos = 32;  
+}
+
+void Meta::update_display() {
+  x_pos--;
+  LCD_Bitmap(x_pos, _y_pos, _width, _height, _bitmap);
+  hitbox_meta = {x_pos, _y_pos, _width, _height};
+}

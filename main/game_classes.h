@@ -36,7 +36,7 @@ class Player {
 
     //Helicopter vars
     hitbox hitbox_heli;
-    unsigned int immunity = 0;
+    unsigned int immunity = 1;
 
     //Bullet functions
     void define_bullet(unsigned int wB, unsigned int hB, unsigned char* bitmapB, unsigned int wE, unsigned int hE, unsigned char* bitmapE);
@@ -104,6 +104,22 @@ class Obstacle {
     
     unsigned int x_pos;
     hitbox hitbox_obstacle;
+
+  private:
+    unsigned char* _bitmap;
+    unsigned int _width;
+    unsigned int _height;
+    unsigned int _y_pos;
+};
+
+class Meta {
+  public:
+    Meta(unsigned int w, unsigned int h, unsigned char* bitmap);
+    
+    void update_display();
+    
+    unsigned int x_pos;
+    hitbox hitbox_meta;
 
   private:
     unsigned char* _bitmap;
