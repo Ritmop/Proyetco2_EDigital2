@@ -150,12 +150,12 @@ void setup() {
   delay(10);
   Serial.println("SD & LDC init");
   LCD_Clear(0x0000);
+  music_select(MusicMenuPIN);
 }
 
 
 void loop() {
   if (gameStatus == MENU) {
-    music_select(MusicMenuPIN);
     draw_menu();
     menu_loop();
   }
@@ -180,9 +180,9 @@ void loop() {
       LCD_Sprite(120, 80, 32, 20, helicopter_r_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
     }
     LCD_Print("MENU", 220, 90, 2, fontColorYellow, menu_bgColor);
-      delay(200);
+    delay(200);
     LCD_Print("MENU", 220, 90, 2, fontColorWhite, menu_bgColor);
-      delay(200);
+    delay(200);
     LCD_Print("MENU", 220, 90, 2, fontColorYellow, menu_bgColor);
     play_sound_fx(shootFxPIN);
     gameStatus = MENU;
@@ -201,9 +201,9 @@ void loop() {
       LCD_Sprite(120, 80, 32, 20, helicopter_r_title_screen, 4, (animation_counter / 6) % 4, 0, 0);
     }
     LCD_Print("MENU", 220, 90, 2, fontColorYellow, menu_bgColor);
-      delay(200);
+    delay(200);
     LCD_Print("MENU", 220, 90, 2, fontColorWhite, menu_bgColor);
-      delay(200);
+    delay(200);
     LCD_Print("MENU", 220, 90, 2, fontColorYellow, menu_bgColor);
     play_sound_fx(shootFxPIN);
     gameStatus = MENU;
@@ -221,7 +221,8 @@ void loop() {
     delay(200);
     LCD_Print("Player 1 Wins!", 48, 216, 2, fontColorBlack, HUD_bgColor);
     while (digitalRead(P1Up));
-    play_sound_fx(shootFxPIN);
+    play_sound_fx(shootFxPIN);    
+    music_select(MusicMenuPIN);
     gameStatus = MENU;
   }
   else if (gameStatus == GAME_OVER_P2_WIN) {
@@ -237,7 +238,8 @@ void loop() {
     delay(200);
     LCD_Print("Player 2 Wins!", 48, 216, 2, fontColorBlack, HUD_bgColor);
     while (digitalRead(P2Up));
-    play_sound_fx(shootFxPIN);
+    play_sound_fx(shootFxPIN);    
+    music_select(MusicMenuPIN);
     gameStatus = MENU;
   }
 }

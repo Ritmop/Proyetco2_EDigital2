@@ -7,8 +7,8 @@ const int LCD_min_y = 33;
 const int LCD_max_y = 207;
 const int backgroundColor = 0x0000;
 
-const float a = 0.02;
-const float vel_leap = 0.3;
+const float a = 0.05;
+const float vel_leap = 0.4;
 const float vel_bullet = 5;
 
 /*********************************************************************************************************
@@ -159,7 +159,7 @@ void Player::update_bullet(unsigned int t) {
       else bullet_state = EXPLOTION;
       break;
     case EXPLOTION:
-      if (t - _t_explotion < 200) {
+      if (t - _t_explotion < 100) {
         _x_exp = (_x_pos_bullet + _width_explotion >= LCD_max_x) ? LCD_max_x - _width_explotion : _x_pos_bullet;
         _y_exp = (_y_pos_bullet - 10 + _height_explotion > LCD_max_y) ? LCD_max_y - _height_explotion : _y_pos_bullet - 10;
         LCD_Bitmap(_x_exp, _y_exp, _width_explotion, _height_explotion, _bitmap_bullet_explotion);
